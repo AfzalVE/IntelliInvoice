@@ -20,7 +20,9 @@ from app.modules.user.user_model import User
 from app.modules.email.email_service import (
     email_service,
 )
-
+from app.modules.invoice.invoice_extraction_service import (
+    InvoiceExtractionService,
+)
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 
@@ -94,6 +96,10 @@ class GmailService:
             "historyId": profile.get("historyId"),
         }
 
+
+
+
+
     @staticmethod
     def fetch_recent_emails(
         db: Session,
@@ -104,20 +110,20 @@ class GmailService:
         """
         Fetch recent Gmail emails.
 
-        - If already analyzed, return cached AI result.
-        - Otherwise analyze once, store in DB, and reuse later.
+        If an email contains invoice attachments,
+        download and extract them into the Invoice table.
+
+        Returns only email details to the frontend.
         """
 
-        service = GmailClient(
-            creds,
-        )
+        service = GmailClient(creds)
 
         messages = service.list_messages(
             max_results=max_results,
         )
 
         emails = []
-
+        print(emails)
         for message in messages:
 
             gmail_email = GmailMapper.map_message(
@@ -125,197 +131,49 @@ class GmailService:
                 message["id"],
             )
 
-            cached = (
+            # ----------------------------------------
+            # Extract invoice attachments
+            # ----------------------------------------
 
-                db.query(
-                    Email,
-                )
+            if gmail_email["hasAttachments"]:
 
-                .filter(
-                    Email.user_id == user.id,
-                    Email.gmail_message_id == gmail_email["id"],
-                )
+                for attachment in gmail_email["attachments"]:
 
-                .first()
+                    try:
 
-            )
+                        InvoiceExtractionService.extract_from_gmail_attachment(
+                                db=db,
+                                gmail_client=service,
+                                message_id=gmail_email["id"],
+                                attachment=attachment,
+                                user_id=user.id,
+                                source_email=gmail_email["senderEmail"],
+)
+                    except Exception as e:
 
-            # --------------------------------------------------
-            # Cached Email
-            # --------------------------------------------------
+                        print(
+                            f"Invoice extraction failed: {e}"
+                        )
 
-            if cached:
-
-                gmail_email.update(
-
-                    {
-
-                        # ---------------- AI ----------------
-
-                        "score": cached.score,
-
-                        "aiSummary": cached.ai_summary,
-
-                        "sentiment": cached.sentiment,
-
-                        "intent": cached.intent,
-
-                        "engagement": cached.engagement,
-
-                        "recommendedNudge": cached.recommended_nudge,
-
-                        # EXACT SAME STRUCTURE
-                        "suggestedResponses": cached.suggested_responses,
-
-                        # ---------------- Optional ----------------
-
-                        "senderAvatar": None,
-
-                        "threadHistory": [],
-
-                    }
-
-                )
-
-            # --------------------------------------------------
-            # First Time Analysis
-            # --------------------------------------------------
-
-            else:
-
-                analysis = email_service.analyze_inbox_email(
-                    gmail_email["body"],
-                )
-
-                suggested_responses = analysis.get(
-                    "suggestedResponses",
-                    {"replies": []},
-                )
-
-                db.add(
-
-                    Email(
-
-                        user_id=user.id,
-
-                        gmail_message_id=gmail_email["id"],
-
-                        sender=gmail_email["sender"],
-
-                        sender_email=gmail_email["senderEmail"],
-
-                        subject=gmail_email["subject"],
-
-                        email_body=gmail_email["body"],
-
-                        ai_summary=analysis.get(
-                            "aiSummary",
-                            "",
-                        ),
-
-                        score=analysis.get(
-                            "score",
-                            "",
-                        ),
-
-                        sentiment=analysis.get(
-                            "sentiment",
-                            0,
-                        ),
-
-                        intent=analysis.get(
-                            "intent",
-                            0,
-                        ),
-
-                        engagement=analysis.get(
-                            "engagement",
-                            0,
-                        ),
-
-                        recommended_nudge=analysis.get(
-                            "recommendedNudge",
-                            "",
-                        ),
-
-                        # Save EXACT frontend structure
-                        suggested_responses=suggested_responses,
-
-                        is_read=gmail_email.get(
-                            "isRead",
-                            False,
-                        ),
-
-                        is_clicked=gmail_email.get(
-                            "isClicked",
-                            False,
-                        ),
-
-                        click_count=gmail_email.get(
-                            "clickCount",
-                            0,
-                        ),
-
-                    )
-
-                )
-
-                gmail_email.update(
-
-                    {
-
-                        # ---------------- AI ----------------
-
-                        "score": analysis.get(
-                            "score",
-                        ),
-
-                        "aiSummary": analysis.get(
-                            "aiSummary",
-                            "",
-                        ),
-
-                        "sentiment": analysis.get(
-                            "sentiment",
-                            0,
-                        ),
-
-                        "intent": analysis.get(
-                            "intent",
-                            0,
-                        ),
-
-                        "engagement": analysis.get(
-                            "engagement",
-                            0,
-                        ),
-
-                        "recommendedNudge": analysis.get(
-                            "recommendedNudge",
-                            "",
-                        ),
-
-                        # Return EXACT SAME STRUCTURE
-                        "suggestedResponses": suggested_responses,
-
-                        # ---------------- Optional ----------------
-
-                        "senderAvatar": None,
-
-                        "threadHistory": [],
-
-                    }
-
-                )
+            # ----------------------------------------
+            # Frontend response
+            # ----------------------------------------
 
             emails.append(
-                gmail_email,
+                {
+                    "id": gmail_email["id"],
+                    "sender": gmail_email["sender"],
+                    "senderEmail": gmail_email["senderEmail"],
+                    "subject": gmail_email["subject"],
+                    "body": gmail_email["body"],
+                    "receivedAt": gmail_email["receivedAt"],
+                    "attachments": gmail_email["attachments"],
+                    "hasAttachments": gmail_email["hasAttachments"],
+                    "isRead": gmail_email["isRead"],
+                }
             )
 
-        db.commit()
-
         return emails
-
     @staticmethod
     def send_email(
         creds,

@@ -1,3 +1,5 @@
+import base64
+
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
@@ -37,6 +39,30 @@ class GmailClient:
             [],
         )
 
+    def download_attachment(
+        self,
+        message_id: str,
+        attachment_id: str,
+    ) -> bytes:
+
+        attachment = (
+            self.service.users()
+            .messages()
+            .attachments()
+            .get(
+                userId="me",
+                messageId=message_id,
+                id=attachment_id,
+            )
+            .execute()
+        )
+
+        if "data" not in attachment:
+            raise Exception("Attachment data not found.")
+
+        return base64.urlsafe_b64decode(
+            attachment["data"].encode("utf-8")
+        )
     def get_message(
         self,
         message_id: str,

@@ -1,16 +1,31 @@
 class GmailAttachment:
 
     @staticmethod
-    def extract(
-        part: dict,
-    ) -> list[dict]:
+    def extract(payload: dict) -> list:
 
-        attachments: list[dict] = []
+        attachments = []
 
-        GmailAttachment._walk_parts(
-            part,
-            attachments,
-        )
+        def walk(part):
+
+            filename = part.get("filename")
+
+            body = part.get("body", {})
+
+            if filename and body.get("attachmentId"):
+
+                attachments.append(
+                    {
+                        "filename": filename,
+                        "mimeType": part.get("mimeType"),
+                        "size": body.get("size", 0),
+                        "attachmentId": body.get("attachmentId"),
+                    }
+                )
+
+            for child in part.get("parts", []):
+                walk(child)
+
+        walk(payload)
 
         return attachments
 

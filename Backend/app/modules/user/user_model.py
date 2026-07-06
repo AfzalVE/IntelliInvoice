@@ -67,3 +67,4 @@ class User(Base):
     "OAuthState",
     cascade="all, delete-orphan",
 )
+    
