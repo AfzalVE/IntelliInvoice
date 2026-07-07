@@ -46,6 +46,40 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState("");
+  const [forgotSuccess, setForgotSuccess] = useState("");
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setForgotError("");
+    setForgotSuccess("");
+
+    if (newPassword !== confirmNewPassword) {
+      setForgotError("Passwords do not match.");
+      return;
+    }
+
+    try {
+      setForgotLoading(true);
+      const { data } = await axios.post(`${API}/auth/reset-password`, {
+        email: forgotEmail,
+        new_password: newPassword,
+      });
+      setForgotSuccess(data.message || "Password reset successfully!");
+    } catch (err) {
+      setForgotError(
+        err.response?.data?.detail || "Failed to reset password. Please check your email."
+      );
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   const handleChange = (e) => {
     setForm((prev) => ({
       ...prev,
@@ -224,18 +258,127 @@ export default function Register() {
             </button>
           </form>
 
-          <p className="text-center text-gray-500 mt-6">
-            Already have an account?{" "}
-            <Link to="/" className="text-blue-600 hover:underline font-medium">
-              Login
-            </Link>
-          </p>
+          <div className="flex justify-between items-center text-sm text-gray-500 mt-6">
+            <span>
+              Already have an account?{" "}
+              <Link to="/" className="text-blue-600 hover:underline font-medium">
+                Login
+              </Link>
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowForgotModal(true)}
+              className="text-blue-600 hover:underline font-medium"
+            >
+              Forgot Password?
+            </button>
+          </div>
 
           <p className="text-center text-gray-400 text-sm mt-4">
             © 2026 IntelliInvoice — AI Invoice Processing System
           </p>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 relative">
+            <h3 className="text-2xl font-bold text-slate-800 mb-2">Reset Password</h3>
+            <p className="text-slate-500 text-sm mb-6">
+              Enter your registered email address and set a new password for your account.
+            </p>
+
+            {forgotError && (
+              <div className="mb-4 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+                {forgotError}
+              </div>
+            )}
+
+            {forgotSuccess ? (
+              <div className="text-center py-4">
+                <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
+                  ✓
+                </div>
+                <p className="text-green-700 font-semibold mb-6">
+                  {forgotSuccess}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForgotModal(false);
+                    setForgotSuccess("");
+                    setForgotEmail("");
+                    setNewPassword("");
+                    setConfirmNewPassword("");
+                  }}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold transition shadow-lg"
+                >
+                  Back to Login
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div className="relative">
+                  <Mail className="absolute left-4 top-4 text-gray-400" size={20} />
+                  <input
+                    type="email"
+                    placeholder="Registered Email"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    required
+                    className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 outline-none transition"
+                  />
+                </div>
+
+                <div className="relative">
+                  <Lock className="absolute left-4 top-4 text-gray-400" size={20} />
+                  <input
+                    type="password"
+                    placeholder="New Password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 outline-none transition"
+                  />
+                </div>
+
+                <div className="relative">
+                  <Lock className="absolute left-4 top-4 text-gray-400" size={20} />
+                  <input
+                    type="password"
+                    placeholder="Confirm New Password"
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    required
+                    className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 outline-none transition"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowForgotModal(false);
+                      setForgotError("");
+                    }}
+                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3.5 rounded-xl font-semibold transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={forgotLoading}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-3.5 rounded-xl font-semibold transition shadow-lg"
+                  >
+                    {forgotLoading ? "Resetting..." : "Reset Password"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

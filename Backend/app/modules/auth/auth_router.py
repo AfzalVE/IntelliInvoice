@@ -5,6 +5,7 @@ from app.core.database import get_db
 from app.modules.auth.auth_schema import (
     RegisterRequest,
     LoginRequest,
+    ResetPasswordRequest,
     AuthResponse,
     UserResponse,
 )
@@ -61,3 +62,15 @@ def get_me(
 ):
     """Return the currently authenticated user's profile including role."""
     return current_user
+
+
+@router.post("/reset-password")
+def reset_password(
+    request: ResetPasswordRequest,
+    db: Session = Depends(get_db),
+):
+    return auth_service.reset_password(
+        db,
+        request.email,
+        request.new_password,
+    )

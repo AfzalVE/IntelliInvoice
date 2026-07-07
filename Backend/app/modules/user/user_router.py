@@ -63,3 +63,16 @@ def update_profile(
     )
 
     return current_user
+
+
+@router.delete("/me")
+def delete_profile(
+    current_user = Depends(
+        get_current_user
+    ),
+    db: Session = Depends(
+        get_db
+    ),
+):
+    from .user_service import user_service
+    return user_service.delete_user(db, current_user)

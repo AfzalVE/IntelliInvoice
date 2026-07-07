@@ -55,5 +55,23 @@ class UserService:
         return user
 
 
+    def delete_user(
+        self,
+        db: Session,
+        user: User,
+    ):
+        from app.modules.invoice.invoice_model import Invoice
+        from app.modules.email.email_model import Email
+        from app.modules.oauth.oauth_model import OAuthAccount, OAuthState
+
+        db.query(Invoice).filter(Invoice.user_id == user.id).delete(synchronize_session=False)
+        db.query(Email).filter(Email.user_id == user.id).delete(synchronize_session=False)
+        db.query(OAuthAccount).filter(OAuthAccount.user_id == user.id).delete(synchronize_session=False)
+        db.query(OAuthState).filter(OAuthState.user_id == user.id).delete(synchronize_session=False)
+        db.delete(user)
+        db.commit()
+        return {"success": True, "message": "Account deleted successfully."}
+
+
 
 user_service = UserService()
