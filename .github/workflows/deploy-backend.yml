@@ -28,7 +28,7 @@ jobs:
         run: |
           rsync -av --delete \
             --exclude '.git' \
-            backend/ hf-space/
+            Backend/ hf-space/
 
       - name: Commit and Push
         run: |
