@@ -29,6 +29,14 @@ class LoginRequest(BaseModel):
 
 
 
+class ResetPasswordRequest(BaseModel):
+
+    email: EmailStr
+
+    new_password: str
+
+
+
 class TokenResponse(BaseModel):
 
     access_token: str

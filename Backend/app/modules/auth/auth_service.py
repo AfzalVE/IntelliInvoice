@@ -180,5 +180,26 @@ class AuthService:
         }
 
 
+    def reset_password(
+        self,
+        db: Session,
+        email: str,
+        new_password: str,
+    ):
+        user = (
+            db.query(User)
+            .filter(User.email == email)
+            .first()
+        )
+        if not user:
+            raise HTTPException(
+                status_code=404,
+                detail="No account found with this email address.",
+            )
+        user.password = password_context.hash(new_password)
+        db.commit()
+        return {"success": True, "message": "Password reset successfully."}
+
+
 
 auth_service = AuthService()
