@@ -9,7 +9,9 @@ engine = create_engine(
     settings.DATABASE_URL,
     pool_pre_ping=True,
     pool_recycle=300,
-    echo=settings.DEBUG,
+    pool_size=5,         # Keep warm connections ready
+    max_overflow=10,
+    echo=False,          # Never log SQL queries (was using DEBUG=True, very slow)
 )
 
 

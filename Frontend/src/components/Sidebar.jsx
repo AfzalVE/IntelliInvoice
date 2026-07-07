@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   FiHome,
   FiInbox,
@@ -6,42 +6,82 @@ import {
   FiFileText,
   FiSettings,
   FiLogOut,
-   FiMail,
+  FiMail,
 } from "react-icons/fi";
 
 export default function Sidebar() {
- const menuItems = [
-  {
-    name: "Dashboard",
-    path: "/dashboard",
-    icon: <FiHome size={20} />,
-  },
-  {
-    name: "Connect Gmail",
-    path: "/gmail",
-    icon: <FiMail size={20} />,
-  },
-  {
-    name: "Invoice Inbox",
-    path: "/inbox",
-    icon: <FiInbox size={20} />,
-  },
-  {
-    name: "Review Invoice",
-    path: "/review/1",
-    icon: <FiFileText size={20} />,
-  },
-  {
-    name: "Approval",
-    path: "/approval",
-    icon: <FiCheckCircle size={20} />,
-  },
-  {
-    name: "Approved",
-    path: "/approved",
-    icon: <FiCheckCircle size={20} />,
-  },
-];
+  const navigate = useNavigate();
+  const role = (localStorage.getItem("role") || "BA").toUpperCase();
+  const userName = localStorage.getItem("userName") || "User";
+
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate("/");
+  };
+
+  // Define menu items for each role
+  const allMenuItems = {
+    BA: [
+      {
+        name: "Dashboard",
+        path: "/dashboard",
+        icon: <FiHome size={20} />,
+      },
+      {
+        name: "Connect Gmail",
+        path: "/gmail",
+        icon: <FiMail size={20} />,
+      },
+      {
+        name: "Invoice Inbox",
+        path: "/inbox",
+        icon: <FiInbox size={20} />,
+      },
+      {
+        name: "Review Invoice",
+        path: "/review/1",
+        icon: <FiFileText size={20} />,
+      },
+    ],
+    ADMIN: [
+      {
+        name: "Dashboard",
+        path: "/dashboard",
+        icon: <FiHome size={20} />,
+      },
+      {
+        name: "Approval",
+        path: "/approval",
+        icon: <FiCheckCircle size={20} />,
+      },
+      {
+        name: "Approved",
+        path: "/approved",
+        icon: <FiCheckCircle size={20} />,
+      },
+    ],
+    FINANCE: [
+      {
+        name: "Dashboard",
+        path: "/dashboard",
+        icon: <FiHome size={20} />,
+      },
+      {
+        name: "Finance Inbox",
+        path: "/finance-inbox",
+        icon: <FiInbox size={20} />,
+      },
+    ],
+  };
+
+  const menuItems = allMenuItems[role] || allMenuItems["BA"];
+
+  const getRoleLabel = () => {
+    if (role === "BA") return "Business Analyst";
+    if (role === "ADMIN") return "Admin Head";
+    if (role === "FINANCE") return "Finance Team";
+    return role;
+  };
 
   return (
     <div className="w-72 min-h-screen bg-slate-900 text-white flex flex-col shadow-2xl">
@@ -142,24 +182,24 @@ export default function Sidebar() {
         <div className="flex items-center gap-4">
 
           <img
-            src="https://ui-avatars.com/api/?name=BA+Team&background=2563eb&color=fff"
+            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=2563eb&color=fff`}
             alt="profile"
             className="w-12 h-12 rounded-full"
           />
 
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
 
-            <h3 className="font-semibold">
-              BA Team
+            <h3 className="font-semibold truncate" title={userName}>
+              {userName}
             </h3>
 
-            <p className="text-slate-400 text-sm">
-              Business Analyst
+            <p className="text-slate-400 text-sm truncate">
+              {getRoleLabel()}
             </p>
 
           </div>
 
-          <button className="hover:text-red-400 transition">
+          <button onClick={handleLogout} className="hover:text-red-400 transition" title="Logout">
             <FiLogOut size={20} />
           </button>
 

@@ -1,4 +1,7 @@
 import { useMemo, useState } from "react";
+import axios from "axios";
+
+const API = "http://localhost:8000";
 
 export default function InvoiceList({
   loading,
@@ -7,6 +10,27 @@ export default function InvoiceList({
   onDelete,
 }) {
   const [search, setSearch] = useState("");
+
+  const handleDownload = async (invoiceId, filename) => {
+    try {
+      const response = await axios.get(`${API}/invoice/${invoiceId}/download-pdf`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`
+        },
+        responseType: "blob"
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: "application/pdf" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", filename || `invoice_${invoiceId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to download PDF: " + (err.response?.data?.detail || err.message));
+    }
+  };
 
   const filteredInvoices = useMemo(() => {
     const value = search.toLowerCase();
@@ -183,15 +207,17 @@ export default function InvoiceList({
 
                     <div className="flex justify-center gap-2">
 
-                      {invoice.attachment_path && (
-                        <a
-                          href={invoice.attachment_path}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="bg-gray-700 hover:bg-gray-800 text-white px-3 py-2 rounded-lg text-sm"
+                      {/* Generated Approval PDF (after submit) */}
+                      {invoice.approval_pdf ? (
+                        <button
+                          onClick={() => handleDownload(invoice.id, `invoice_${invoice.id}_ba_approved.pdf`)}
+                          className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm flex items-center gap-1 font-semibold"
+                          title="Download BA Approved PDF"
                         >
-                          PDF
-                        </a>
+                          PDF ↓
+                        </button>
+                      ) : (
+                        <span className="text-xs text-gray-400">No PDF</span>
                       )}
 
                       <button

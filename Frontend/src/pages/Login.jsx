@@ -4,47 +4,51 @@ import { Mail, Lock } from "lucide-react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 
+const API = "http://localhost:8000";
+
+// Role-to-landing-page map
+const ROLE_HOME = {
+  BA: "/review/1",
+  ADMIN: "/approval",
+  FINANCE: "/finance-inbox",
+};
+
 export default function Login() {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError("");
 
     try {
       setLoading(true);
 
-      const { data } = await axios.post(
-        "http://localhost:8000/auth/login", // Change to your API
-        {
-          email,
-          password,
-        }
-      );
+      const { data } = await axios.post(`${API}/auth/login`, {
+        email,
+        password,
+      });
 
       // Save access token
       localStorage.setItem("accessToken", data.token.access_token);
-      console.log("Access Token:", data.token.access_token);
-      console.log(localStorage.getItem("accessToken"));
 
-      // Optional: Save refresh token if returned
-      if (data.token.refresh_token) {
-        localStorage.setItem("refreshToken", data.token.refresh_token);
-      }
-
-      // Optional: Save user information
+      // Save user info (name + role)
       if (data.user) {
         localStorage.setItem("user", JSON.stringify(data.user));
+        localStorage.setItem("role", data.user.role || "BA");
+        localStorage.setItem("userName", data.user.name || "");
       }
 
-      navigate("/dashboard");
+      // Navigate to role-appropriate home page
+      const role = (data.user?.role || "BA").toUpperCase();
+      navigate(ROLE_HOME[role] || "/dashboard");
     } catch (err) {
-      alert(
-        err.response?.data?.detail ||
-        "Invalid email or password."
+      setError(
+        err.response?.data?.detail || "Invalid email or password."
       );
     } finally {
       setLoading(false);
@@ -56,55 +60,31 @@ export default function Login() {
       {/* Left Side */}
       <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-blue-700 via-indigo-700 to-slate-900 text-white flex-col justify-center px-20">
         <h1 className="text-5xl font-bold leading-tight">
-          AI Invoice
+          IntelliInvoice
           <br />
-          Processing System
+          <span className="text-blue-300">AI Processing</span>
         </h1>
 
         <p className="mt-6 text-lg text-blue-100 leading-8">
-          Automate invoice extraction, review,
-          approval and document management with AI.
+          Automate invoice extraction, review, approval and document management with AI.
         </p>
 
         <div className="mt-14 space-y-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-              📧
+          {[
+            { icon: "📧", title: "BA Team", desc: "Review & edit extracted invoices." },
+            { icon: "✅", title: "Admin Head", desc: "Approve, sign and forward invoices." },
+            { icon: "💼", title: "Finance Team", desc: "Receive approved invoices for Austria BMS entry." },
+          ].map((item) => (
+            <div key={item.title} className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-xl">
+                {item.icon}
+              </div>
+              <div>
+                <h3 className="font-semibold">{item.title}</h3>
+                <p className="text-blue-100 text-sm">{item.desc}</p>
+              </div>
             </div>
-
-            <div>
-              <h3 className="font-semibold">Email Integration</h3>
-              <p className="text-blue-100 text-sm">
-                Download invoices automatically.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-              🤖
-            </div>
-
-            <div>
-              <h3 className="font-semibold">AI Extraction</h3>
-              <p className="text-blue-100 text-sm">
-                Read invoice details instantly.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-              ✅
-            </div>
-
-            <div>
-              <h3 className="font-semibold">Approval Workflow</h3>
-              <p className="text-blue-100 text-sm">
-                Digital approval & document tracking.
-              </p>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
@@ -125,13 +105,15 @@ export default function Login() {
             </p>
           </div>
 
+          {error && (
+            <div className="mt-4 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleLogin} className="mt-8">
             <div className="relative mb-5">
-              <Mail
-                className="absolute left-4 top-4 text-gray-400"
-                size={20}
-              />
-
+              <Mail className="absolute left-4 top-4 text-gray-400" size={20} />
               <input
                 type="email"
                 placeholder="Email Address"
@@ -143,11 +125,7 @@ export default function Login() {
             </div>
 
             <div className="relative">
-              <Lock
-                className="absolute left-4 top-4 text-gray-400"
-                size={20}
-              />
-
+              <Lock className="absolute left-4 top-4 text-gray-400" size={20} />
               <input
                 type="password"
                 placeholder="Password"
@@ -158,22 +136,8 @@ export default function Login() {
               />
             </div>
 
-            <div className="flex justify-between items-center mt-5 text-sm">
-              <label className="flex items-center gap-2">
-                <input type="checkbox" />
-                Remember Me
-              </label>
-
-              <button
-                type="button"
-                className="text-blue-600 hover:underline"
-              >
-                Forgot Password?
-              </button>
-              <Link
-                to="/register"
-                className="text-blue-600 hover:underline"
-              >
+            <div className="flex justify-end items-center mt-4 text-sm">
+              <Link to="/register" className="text-blue-600 hover:underline">
                 Register
               </Link>
             </div>
@@ -181,14 +145,14 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="mt-8 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-4 rounded-xl text-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl"
+              className="mt-6 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-4 rounded-xl text-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl"
             >
               {loading ? "Signing In..." : "Login"}
             </button>
           </form>
 
           <p className="text-center text-gray-400 text-sm mt-8">
-            © 2026 AI Invoice Processing System
+            © 2026 IntelliInvoice — AI Invoice Processing System
           </p>
         </div>
       </div>

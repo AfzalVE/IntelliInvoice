@@ -15,6 +15,16 @@ export default function Navbar() {
     year: "numeric",
   });
 
+  const role = (localStorage.getItem("role") || "BA").toUpperCase();
+  const userName = localStorage.getItem("userName") || "User";
+
+  const getRoleLabel = () => {
+    if (role === "BA") return "Business Analyst";
+    if (role === "ADMIN") return "Admin Head";
+    if (role === "FINANCE") return "Finance Team";
+    return role;
+  };
+
   return (
     <header className="bg-white border-b border-gray-200 shadow-sm px-8 py-4 flex items-center justify-between">
 
@@ -106,7 +116,7 @@ export default function Navbar() {
         <button className="flex items-center gap-3 hover:bg-gray-100 px-3 py-2 rounded-xl transition">
 
           <img
-            src="https://ui-avatars.com/api/?name=Business+Analyst&background=2563eb&color=fff"
+            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=2563eb&color=fff`}
             alt="profile"
             className="w-11 h-11 rounded-full"
           />
@@ -114,11 +124,11 @@ export default function Navbar() {
           <div className="hidden md:block text-left">
 
             <h3 className="font-semibold text-gray-800">
-              BA Team
+              {userName}
             </h3>
 
             <p className="text-xs text-gray-500">
-              Business Analyst
+              {getRoleLabel()}
             </p>
 
           </div>

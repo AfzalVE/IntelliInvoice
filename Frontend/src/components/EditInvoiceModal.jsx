@@ -11,6 +11,7 @@ export default function EditInvoiceModal({
 }) {
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
 useEffect(() => {
   if (open && invoice) {
@@ -76,12 +77,12 @@ useEffect(() => {
     try {
       setSaving(true);
 
-      await axios.put(`${API}/invoice/${form.id || form._id}`, {
+      const res = await axios.put(`${API}/invoice/${form.id || form._id}`, {
         vendor: form.vendor,
         invoice_number: form.invoice_number,
         po_number: form.po_number,
-        invoice_date: form.invoice_date,
-        due_date: form.due_date,
+        invoice_date: form.invoice_date || null,
+        due_date: form.due_date || null,
         tax: Number(form.tax),
         total_amount: Number(form.total_amount),
         currency: form.currency,
@@ -90,15 +91,63 @@ useEffect(() => {
         approver_comments: form.approver_comments,
       });
 
-      onUpdated();
-      onClose();
+      const updatedInvoice = res.data.invoice;
+      setForm({
+        ...updatedInvoice,
+        invoice_date: updatedInvoice.invoice_date
+          ? updatedInvoice.invoice_date.split("T")[0]
+          : "",
+        due_date: updatedInvoice.due_date
+          ? updatedInvoice.due_date.split("T")[0]
+          : "",
+        line_items: updatedInvoice.line_items || [],
+      });
+
+      alert("Changes saved successfully!");
     } catch (err) {
       console.log(err);
-      alert("Update failed");
+      alert("Update failed: " + (err.response?.data?.detail || err.message));
     } finally {
       setSaving(false);
     }
   }
+
+  async function handleSubmit() {
+    try {
+      setSubmitting(true);
+
+      // First save any pending edits
+      await axios.put(`${API}/invoice/${form.id || form._id}`, {
+        vendor: form.vendor,
+        invoice_number: form.invoice_number,
+        po_number: form.po_number,
+        invoice_date: form.invoice_date || null,
+        due_date: form.due_date || null,
+        tax: Number(form.tax),
+        total_amount: Number(form.total_amount),
+        currency: form.currency,
+        line_items: form.line_items,
+        ba_comments: form.ba_comments,
+        approver_comments: form.approver_comments,
+      });
+
+      // Then submit the invoice (sets BA Approved + generates PDF)
+      await axios.post(`${API}/invoice/${form.id || form._id}/submit`, {});
+
+      alert("Invoice submitted successfully! Approval PDF has been generated.");
+      onUpdated();
+      onClose();
+    } catch (err) {
+      console.log(err);
+      alert("Submit failed: " + (err.response?.data?.detail || err.message));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const isAlreadySubmitted =
+    form &&
+    ["Submitted", "Approved", "Rejected"].includes(form.status);
 
   if (!open || !form) return null;
     return (
@@ -365,6 +414,19 @@ useEffect(() => {
             className="px-5 py-2 bg-green-600 text-white rounded hover:bg-green-700"
           >
             {saving ? "Saving..." : "Save Changes"}
+          </button>
+
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className={`px-5 py-2 rounded text-white font-semibold bg-blue-600 hover:bg-blue-700`}
+            title="Submit invoice for approval (generates/regenerates PDF)"
+          >
+            {submitting
+              ? "Submitting..."
+              : isAlreadySubmitted
+              ? "Resubmit Invoice"
+              : "Submit Invoice"}
           </button>
 
         </div>

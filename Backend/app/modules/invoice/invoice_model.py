@@ -98,6 +98,11 @@ class Invoice(Base):
         Text,
     )
 
+    finance_comments: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
     approval_pdf: Mapped[str | None] = mapped_column(
         Text,
     )
@@ -121,9 +126,10 @@ class Invoice(Base):
         default=datetime.utcnow,
         onupdate=datetime.utcnow,
     )
-    source_email: Mapped[str | None] = mapped_column(
-    String(255),
-    nullable=True,
-)
 
-    user = relationship("User")
+    source_email: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+
+    user = relationship("User")

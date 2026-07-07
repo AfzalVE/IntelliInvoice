@@ -1,7 +1,36 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Mail, Lock, User } from "lucide-react";
+import { Mail, Lock, User, ShieldCheck } from "lucide-react";
 import axios from "axios";
+
+const API = "http://localhost:8000";
+
+const ROLE_HOME = {
+  BA: "/review/1",
+  ADMIN: "/approval",
+  FINANCE: "/finance-inbox",
+};
+
+const ROLES = [
+  {
+    value: "BA",
+    label: "Business Analyst (BA)",
+    desc: "Review, edit and submit invoices for approval",
+    color: "blue",
+  },
+  {
+    value: "ADMIN",
+    label: "Admin Head",
+    desc: "Approve or reject submitted invoices with digital signature",
+    color: "purple",
+  },
+  {
+    value: "FINANCE",
+    label: "Finance Team",
+    desc: "Receive approved invoices and add BMS entry notes",
+    color: "green",
+  },
+];
 
 export default function Register() {
   const navigate = useNavigate();
@@ -11,9 +40,11 @@ export default function Register() {
     email: "",
     password: "",
     confirmPassword: "",
+    role: "BA",
   });
 
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleChange = (e) => {
     setForm((prev) => ({
@@ -24,45 +55,38 @@ export default function Register() {
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    setError("");
 
     if (form.password !== form.confirmPassword) {
-      alert("Passwords do not match.");
+      setError("Passwords do not match.");
       return;
     }
 
     try {
       setLoading(true);
 
-      const { data } = await axios.post(
-        "http://localhost:8000/auth/register",
-        {
-          name: form.name,
-          email: form.email,
-          password: form.password,
-        }
-      );
+      const { data } = await axios.post(`${API}/auth/register`, {
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        role: form.role,
+      });
 
-      // Save tokens if backend returns them
-      if (data.access_token) {
-        localStorage.setItem("accessToken", data.access_token);
-      }
-
-      if (data.refresh_token) {
-        localStorage.setItem("refreshToken", data.refresh_token);
+      // Save session
+      if (data.token?.access_token) {
+        localStorage.setItem("accessToken", data.token.access_token);
       }
 
       if (data.user) {
         localStorage.setItem("user", JSON.stringify(data.user));
+        localStorage.setItem("role", data.user.role || "BA");
+        localStorage.setItem("userName", data.user.name || "");
       }
 
-      // If backend doesn't auto-login after registration,
-      // replace this with navigate("/login")
-      navigate("/dashboard");
+      const role = (data.user?.role || "BA").toUpperCase();
+      navigate(ROLE_HOME[role] || "/dashboard");
     } catch (err) {
-      alert(
-        err.response?.data?.detail ||
-          "Registration failed."
-      );
+      setError(err.response?.data?.detail || "Registration failed.");
     } finally {
       setLoading(false);
     }
@@ -70,94 +94,57 @@ export default function Register() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left Side */}
+      {/* Left Panel */}
       <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-blue-700 via-indigo-700 to-slate-900 text-white flex-col justify-center px-20">
         <h1 className="text-5xl font-bold leading-tight">
-          AI Invoice
+          IntelliInvoice
           <br />
-          Processing System
+          <span className="text-blue-300">3-Role Workflow</span>
         </h1>
-
         <p className="mt-6 text-lg text-blue-100 leading-8">
-          Create your account to automate invoice extraction,
-          document management and approval workflows.
+          Choose your role and join the automated invoice management workflow.
         </p>
-
-        <div className="mt-14 space-y-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-              📧
+        <div className="mt-12 space-y-5">
+          {ROLES.map((r) => (
+            <div
+              key={r.value}
+              className={`flex items-start gap-4 p-4 rounded-xl ${
+                form.role === r.value ? "bg-white/20" : "bg-white/5"
+              } transition`}
+            >
+              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0 font-bold text-sm">
+                {r.value}
+              </div>
+              <div>
+                <h3 className="font-semibold">{r.label}</h3>
+                <p className="text-blue-100 text-sm mt-0.5">{r.desc}</p>
+              </div>
             </div>
-
-            <div>
-              <h3 className="font-semibold">
-                Gmail Integration
-              </h3>
-
-              <p className="text-blue-100 text-sm">
-                Automatically receive invoice emails.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-              🤖
-            </div>
-
-            <div>
-              <h3 className="font-semibold">
-                AI Processing
-              </h3>
-
-              <p className="text-blue-100 text-sm">
-                Extract invoice data within seconds.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-              ✅
-            </div>
-
-            <div>
-              <h3 className="font-semibold">
-                Secure Platform
-              </h3>
-
-              <p className="text-blue-100 text-sm">
-                Store and manage invoices securely.
-              </p>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
-      {/* Right Side */}
+      {/* Right Panel */}
       <div className="flex-1 flex justify-center items-center bg-slate-100 p-8">
         <div className="bg-white shadow-2xl rounded-3xl p-10 w-full max-w-md">
           <div className="text-center">
             <div className="w-20 h-20 mx-auto rounded-full bg-blue-600 text-white flex items-center justify-center text-3xl shadow-lg">
               AI
             </div>
-
-            <h2 className="text-3xl font-bold mt-6 text-slate-800">
-              Create Account
-            </h2>
-
-            <p className="text-slate-500 mt-2">
-              Register to get started
-            </p>
+            <h2 className="text-3xl font-bold mt-6 text-slate-800">Create Account</h2>
+            <p className="text-slate-500 mt-2">Register to get started</p>
           </div>
 
-          <form onSubmit={handleRegister} className="mt-8 space-y-5">
-            <div className="relative">
-              <User
-                className="absolute left-4 top-4 text-gray-400"
-                size={20}
-              />
+          {error && (
+            <div className="mt-4 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+              {error}
+            </div>
+          )}
 
+          <form onSubmit={handleRegister} className="mt-8 space-y-4">
+            {/* Name */}
+            <div className="relative">
+              <User className="absolute left-4 top-4 text-gray-400" size={20} />
               <input
                 type="text"
                 name="name"
@@ -165,16 +152,13 @@ export default function Register() {
                 value={form.name}
                 onChange={handleChange}
                 required
-                className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 outline-none"
+                className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 outline-none transition"
               />
             </div>
 
+            {/* Email */}
             <div className="relative">
-              <Mail
-                className="absolute left-4 top-4 text-gray-400"
-                size={20}
-              />
-
+              <Mail className="absolute left-4 top-4 text-gray-400" size={20} />
               <input
                 type="email"
                 name="email"
@@ -182,16 +166,30 @@ export default function Register() {
                 value={form.email}
                 onChange={handleChange}
                 required
-                className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 outline-none"
+                className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 outline-none transition"
               />
             </div>
 
+            {/* Role Selector */}
             <div className="relative">
-              <Lock
-                className="absolute left-4 top-4 text-gray-400"
-                size={20}
-              />
+              <ShieldCheck className="absolute left-4 top-4 text-gray-400" size={20} />
+              <select
+                name="role"
+                value={form.role}
+                onChange={handleChange}
+                className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 outline-none transition appearance-none bg-white"
+              >
+                {ROLES.map((r) => (
+                  <option key={r.value} value={r.value}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
+            {/* Password */}
+            <div className="relative">
+              <Lock className="absolute left-4 top-4 text-gray-400" size={20} />
               <input
                 type="password"
                 name="password"
@@ -199,16 +197,13 @@ export default function Register() {
                 value={form.password}
                 onChange={handleChange}
                 required
-                className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 outline-none"
+                className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 outline-none transition"
               />
             </div>
 
+            {/* Confirm Password */}
             <div className="relative">
-              <Lock
-                className="absolute left-4 top-4 text-gray-400"
-                size={20}
-              />
-
+              <Lock className="absolute left-4 top-4 text-gray-400" size={20} />
               <input
                 type="password"
                 name="confirmPassword"
@@ -216,14 +211,14 @@ export default function Register() {
                 value={form.confirmPassword}
                 onChange={handleChange}
                 required
-                className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 outline-none"
+                className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 outline-none transition"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-4 rounded-xl text-lg font-semibold transition"
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-4 rounded-xl text-lg font-semibold transition-all shadow-lg"
             >
               {loading ? "Creating Account..." : "Register"}
             </button>
@@ -231,19 +226,16 @@ export default function Register() {
 
           <p className="text-center text-gray-500 mt-6">
             Already have an account?{" "}
-            <Link
-              to="/login"
-              className="text-blue-600 hover:underline font-medium"
-            >
+            <Link to="/" className="text-blue-600 hover:underline font-medium">
               Login
             </Link>
           </p>
 
-          <p className="text-center text-gray-400 text-sm mt-8">
-            © 2026 AI Invoice Processing System
+          <p className="text-center text-gray-400 text-sm mt-4">
+            © 2026 IntelliInvoice — AI Invoice Processing System
           </p>
         </div>
       </div>
     </div>
   );
-}   
+}

@@ -15,6 +15,7 @@ from app.modules.auth.jwt import (
 password_context = CryptContext(
     schemes=["bcrypt"],
     deprecated="auto",
+    bcrypt__rounds=10,  # Default is 12; 10 is still secure but ~4x faster
 )
 
 
@@ -29,6 +30,7 @@ class AuthService:
         name: str,
         email: str,
         password: str,
+        role: str = "BA",
     ):
 
 
@@ -63,6 +65,8 @@ class AuthService:
             email=email,
 
             password=hashed_password,
+
+            role=role.upper(),
 
         )
 

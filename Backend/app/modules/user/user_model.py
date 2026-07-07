@@ -19,19 +19,16 @@ class User(Base):
 
     __tablename__ = "users"
 
-
     id: Mapped[int] = mapped_column(
         Integer,
         primary_key=True,
         index=True,
     )
 
-
     name: Mapped[str] = mapped_column(
         String(100),
         nullable=False,
     )
-
 
     email: Mapped[str] = mapped_column(
         String(255),
@@ -40,31 +37,37 @@ class User(Base):
         nullable=False,
     )
 
-
     password: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
     )
 
+    # Role: "BA" | "ADMIN" | "FINANCE"
+    role: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="BA",
+        server_default="BA",
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.utcnow,
     )
 
-
     emails = relationship(
         "Email",
         back_populates="user",
         cascade="all, delete",
     )
+
     oauth_accounts = relationship(
-    "OAuthAccount",
-    back_populates="user",
-    cascade="all, delete-orphan",
-)
+        "OAuthAccount",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
     oauth_states = relationship(
-    "OAuthState",
-    cascade="all, delete-orphan",
-)
-    
+        "OAuthState",
+        cascade="all, delete-orphan",
+    )

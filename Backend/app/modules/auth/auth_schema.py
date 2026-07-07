@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import (
     BaseModel,
     EmailStr,
@@ -13,6 +15,9 @@ class RegisterRequest(BaseModel):
     email: EmailStr
 
     password: str
+
+    # Allowed roles: BA, ADMIN, FINANCE
+    role: Literal["BA", "ADMIN", "FINANCE"] = "BA"
 
 
 
@@ -40,6 +45,7 @@ class UserResponse(BaseModel):
 
     email: EmailStr
 
+    role: str = "BA"
 
     model_config = ConfigDict(
         from_attributes=True
@@ -55,4 +61,4 @@ class AuthResponse(BaseModel):
 
     user: UserResponse
 
-    token: TokenResponse
+    token: TokenResponse

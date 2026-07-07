@@ -60,15 +60,18 @@ class InvoiceService:
     @staticmethod
     def get_all_invoices(
         db: Session,
+        status_filter: list[str] | None = None,
     ):
+        """
+        Return invoices optionally filtered by status list.
+        E.g. status_filter=["Submitted"] for ADMIN, ["Approved"] for FINANCE.
+        """
+        query = db.query(Invoice)
 
-        return (
-            db.query(Invoice)
-            .order_by(
-                Invoice.created_at.desc(),
-            )
-            .all()
-        )
+        if status_filter:
+            query = query.filter(Invoice.status.in_(status_filter))
+
+        return query.order_by(Invoice.created_at.desc()).all()
 
     # ---------------------------------------------------------
     # Get By ID
@@ -130,6 +133,16 @@ class InvoiceService:
         db.commit()
         db.refresh(invoice)
 
+        # Regenerate approval PDF if it has already been generated
+        if invoice.approval_pdf:
+            from app.modules.invoice.pdf_generator import generate_invoice_pdf
+            try:
+                invoice.approval_pdf = generate_invoice_pdf(invoice)
+                db.commit()
+                db.refresh(invoice)
+            except Exception as e:
+                print("Error regenerating approval PDF on update:", e)
+
         return invoice
 
     # ---------------------------------------------------------
@@ -148,7 +161,18 @@ class InvoiceService:
         )
 
         invoice.status = "Submitted"
+        invoice.ba_comments = "Approved"
 
+        invoice.updated_at = datetime.utcnow()
+
+        db.commit()
+        db.refresh(invoice)
+
+        # Generate the approval PDF after commit so all fields are final
+        from app.modules.invoice.pdf_generator import generate_invoice_pdf
+
+        pdf_path = generate_invoice_pdf(invoice)
+        invoice.approval_pdf = pdf_path
         invoice.updated_at = datetime.utcnow()
 
         db.commit()
@@ -172,12 +196,26 @@ class InvoiceService:
             invoice_id,
         )
 
-        invoice.approval_comments = comments
+        invoice.approver_comments = comments
 
         invoice.updated_at = datetime.utcnow()
 
         db.commit()
         db.refresh(invoice)
+
+        # Regenerate signed PDF if it already exists
+        if invoice.signed_pdf:
+            from app.modules.invoice.pdf_generator import generate_invoice_pdf
+            from pathlib import Path
+            sig_dir = Path(__file__).resolve().parents[3] / "signatures"
+            sig_path = sig_dir / f"signature_{invoice_id}.png"
+            sig_path_str = str(sig_path) if sig_path.exists() else None
+            try:
+                invoice.signed_pdf = generate_invoice_pdf(invoice, signature_path=sig_path_str)
+                db.commit()
+                db.refresh(invoice)
+            except Exception as e:
+                print("Error regenerating signed PDF on comment:", e)
 
         return invoice
 
@@ -189,8 +227,12 @@ class InvoiceService:
     def approve_invoice(
         db: Session,
         invoice_id: int,
-        signed_document: str | None = None,
+        comments: str | None = None,
+        signature_base64: str | None = None,
+        signature_id: int | None = None,
     ) -> Invoice:
+        import base64
+        from pathlib import Path
 
         invoice = InvoiceService.get_invoice(
             db,
@@ -198,13 +240,66 @@ class InvoiceService:
         )
 
         invoice.status = "Approved"
-
-        invoice.signed_document = signed_document
+        if comments:
+            invoice.approver_comments = comments
 
         invoice.updated_at = datetime.utcnow()
 
         db.commit()
         db.refresh(invoice)
+
+        # Resolve signature path
+        sig_path_str = None
+
+        # Option 1: Reuse a previously saved signature
+        if signature_id:
+            from app.modules.invoice.signature_service import SignatureService
+            try:
+                saved_sig = SignatureService.get_signature(db, signature_id)
+                sig_path_str = saved_sig.image_path
+            except Exception as e:
+                print("Error loading saved signature:", e)
+
+        # Option 2: New signature drawn on canvas
+        elif signature_base64:
+            try:
+                if "," in signature_base64:
+                    header, base64_data = signature_base64.split(",", 1)
+                else:
+                    base64_data = signature_base64
+
+                sig_bytes = base64.b64decode(base64_data)
+
+                sig_dir = Path(__file__).resolve().parents[3] / "signatures"
+                sig_dir.mkdir(parents=True, exist_ok=True)
+                sig_path = sig_dir / f"signature_{invoice_id}.png"
+                with open(sig_path, "wb") as f:
+                    f.write(sig_bytes)
+                sig_path_str = str(sig_path)
+
+                # Auto-save the new signature for future reuse
+                from app.modules.invoice.signature_service import SignatureService
+                try:
+                    SignatureService.save_signature(
+                        db,
+                        base64_data=signature_base64,
+                    )
+                except Exception as save_err:
+                    print("Error auto-saving signature for reuse:", save_err)
+
+            except Exception as e:
+                print("Error saving signature base64:", e)
+
+        # Generate signed PDF
+        from app.modules.invoice.pdf_generator import generate_invoice_pdf
+        try:
+            signed_pdf_path = generate_invoice_pdf(invoice, signature_path=sig_path_str)
+            invoice.signed_pdf = signed_pdf_path
+            invoice.updated_at = datetime.utcnow()
+            db.commit()
+            db.refresh(invoice)
+        except Exception as e:
+            print("Error generating signed PDF:", e)
 
         return invoice
 
@@ -228,12 +323,47 @@ class InvoiceService:
 
         if comments:
 
-            invoice.approval_comments = comments
+            invoice.approver_comments = comments
 
         invoice.updated_at = datetime.utcnow()
 
         db.commit()
         db.refresh(invoice)
+
+        return invoice
+
+    # ---------------------------------------------------------
+    # Finance Comment (BMS entry notes)
+    # ---------------------------------------------------------
+
+    @staticmethod
+    def add_finance_comment(
+        db: Session,
+        invoice_id: int,
+        comments: str,
+    ) -> Invoice:
+
+        invoice = InvoiceService.get_invoice(db, invoice_id)
+
+        invoice.finance_comments = comments
+        invoice.updated_at = datetime.utcnow()
+
+        db.commit()
+        db.refresh(invoice)
+
+        # Regenerate signed PDF if it exists to include finance comments
+        if invoice.signed_pdf:
+            from app.modules.invoice.pdf_generator import generate_invoice_pdf
+            from pathlib import Path
+            sig_dir = Path(__file__).resolve().parents[3] / "signatures"
+            sig_path = sig_dir / f"signature_{invoice_id}.png"
+            sig_path_str = str(sig_path) if sig_path.exists() else None
+            try:
+                invoice.signed_pdf = generate_invoice_pdf(invoice, signature_path=sig_path_str)
+                db.commit()
+                db.refresh(invoice)
+            except Exception as e:
+                print("Error regenerating signed PDF on finance comment:", e)
 
         return invoice
 

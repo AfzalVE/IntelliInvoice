@@ -61,6 +61,8 @@ class InvoiceUpdateRequest(BaseModel):
         default_factory=list,
     )
 
+    ba_comments: str | None = None
+
 
 # --------------------------------------------------
 # BA Submit
@@ -81,6 +83,31 @@ class ApprovalCommentRequest(BaseModel):
         ...,
         min_length=1,
     )
+
+
+# --------------------------------------------------
+# Finance Comment Request (BMS Entry Notes)
+# --------------------------------------------------
+
+class FinanceCommentRequest(BaseModel):
+
+    comments: str = Field(
+        ...,
+        min_length=1,
+    )
+
+
+# --------------------------------------------------
+# Department Head Approval With Signature
+# --------------------------------------------------
+
+class InvoiceApproveRequest(BaseModel):
+
+    comments: str | None = None
+
+    signature_base64: str | None = None
+
+    signature_id: int | None = None
 
 
 # --------------------------------------------------
@@ -117,6 +144,16 @@ class InvoiceResponse(BaseModel):
 
     attachment_path: str | None
 
+    ba_comments: str | None = None
+
+    approver_comments: str | None = None
+
+    finance_comments: str | None = None
+
+    approval_pdf: str | None = None
+
+    signed_pdf: str | None = None
+
     status: str
 
     created_at: datetime
@@ -150,3 +187,36 @@ class InvoiceDetailResponse(BaseModel):
     success: bool
 
     invoice: InvoiceResponse
+
+
+# --------------------------------------------------
+# Signature Schemas
+# --------------------------------------------------
+
+class SignatureSaveRequest(BaseModel):
+
+    signature_base64: str
+
+    label: str | None = None
+
+
+class SignatureResponse(BaseModel):
+
+    id: int
+
+    label: str
+
+    created_at: datetime
+
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
+
+
+class SignatureListResponse(BaseModel):
+
+    success: bool
+
+    count: int
+
+    signatures: list[SignatureResponse]

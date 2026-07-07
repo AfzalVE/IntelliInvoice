@@ -14,9 +14,11 @@ from app.modules.user import router as user_router
 from app.modules.gmail import gmail_router
 from app.modules.oauth import router as oauth_router
 from app.modules.invoice import router as invoice_router
+from app.modules.invoice.signature_route import router as signature_router
 # Import models so SQLAlchemy registers them
 from app.modules.user.user_model import User
 from app.modules.email.email_model import Email
+from app.modules.invoice.signature_model import Signature
 
 
 app = FastAPI(
@@ -42,6 +44,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
+        "http://localhost:5174",
         "https://reply-iq-three.vercel.app",
     ],
     allow_credentials=True,
@@ -58,6 +61,7 @@ app.include_router(user_router)
 app.include_router(gmail_router)
 app.include_router(oauth_router)
 app.include_router(invoice_router)
+app.include_router(signature_router)
 
 @app.on_event("startup")
 def startup():

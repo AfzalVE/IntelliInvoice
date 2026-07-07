@@ -10,18 +10,21 @@ from pydantic import (
 
 class UserResponse(BaseModel):
 
-    id:int
+    id: int
 
-    name:str
+    name: str
 
-    email:EmailStr
+    email: EmailStr
 
-    created_at:datetime
+    role: str = "BA"
+
+    created_at: datetime
 
 
     model_config = ConfigDict(
         from_attributes=True
     )
+
 
 
 
