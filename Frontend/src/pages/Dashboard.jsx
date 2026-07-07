@@ -28,7 +28,7 @@ export default function Dashboard() {
   async function fetchDashboardData() {
     try {
       setLoading(true);
-      const res = await axios.get(`${API}/invoice?view=all`);
+      const res = await axios.get(`${API}/invoice/?view=all`);
       setInvoices(res.data.invoices || []);
     } catch (err) {
       console.error("Failed to fetch dashboard data:", err);

@@ -61,7 +61,7 @@ export default function Approval() {
   async function fetchSubmittedInvoices() {
     try {
       setLoading(true);
-      const res = await axios.get(`${API}/invoice`);
+      const res = await axios.get(`${API}/invoice/`);
       // Filter for submitted invoices
       const submitted = (res.data.invoices || []).filter(
         (inv) => inv.status.toUpperCase() === "SUBMITTED"

@@ -24,7 +24,7 @@ export default function ReviewInvoice() {
     try {
       setLoading(true);
 
-      const res = await axios.get(`${API}/invoice`);
+      const res = await axios.get(`${API}/invoice/`);
 
       setInvoices(res.data.invoices || []);
     } catch (err) {

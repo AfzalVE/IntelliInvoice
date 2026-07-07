@@ -90,6 +90,7 @@ class InvoiceService:
             )
             .first()
         )
+        print(f"Retrieved invoice: {invoice}")  # Debugging line
 
         if not invoice:
 

@@ -33,7 +33,7 @@ export default function FinanceInbox() {
   async function fetchApprovedInvoices() {
     try {
       setLoading(true);
-      const res = await axios.get(`${API}/invoice`);
+      const res = await axios.get(`${API}/invoice/`);
       const approved = (res.data.invoices || []).filter(
         (inv) => inv.status.toUpperCase() === "APPROVED"
       );
