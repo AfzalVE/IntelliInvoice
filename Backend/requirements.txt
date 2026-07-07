@@ -50,3 +50,7 @@ pymupdf
 python-docx
 langchain-text-splitters
 numpy
+pytesseract
+pillow
+python-docx  
+pdfplumber

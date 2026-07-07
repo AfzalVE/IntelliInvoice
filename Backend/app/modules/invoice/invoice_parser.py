@@ -1,9 +1,12 @@
 import re
-from datetime import datetime, date
+from datetime import datetime
 
 
 class InvoiceParser:
 
+    # =========================
+    # MAIN PARSE METHOD
+    # =========================
     @staticmethod
     def parse(text: str):
 
@@ -16,9 +19,12 @@ class InvoiceParser:
             "tax": InvoiceParser.tax(text),
             "total_amount": InvoiceParser.total_amount(text),
             "currency": InvoiceParser.currency(text),
-            "line_items": [],
+            "line_items": InvoiceParser.line_items(text),  # ✅ FIXED
         }
 
+    # =========================
+    # VENDOR
+    # =========================
     @staticmethod
     def vendor(text):
 
@@ -31,16 +37,9 @@ class InvoiceParser:
         if match:
             return match.group(1).strip()
 
-        lines = [
-            line.strip()
-            for line in text.splitlines()
-            if line.strip()
-        ]
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
 
-        ignore = {
-            "TAX INVOICE",
-            "INVOICE",
-        }
+        ignore = {"TAX INVOICE", "INVOICE"}
 
         for line in lines:
             if line.upper() not in ignore:
@@ -48,6 +47,9 @@ class InvoiceParser:
 
         return None
 
+    # =========================
+    # INVOICE NUMBER
+    # =========================
     @staticmethod
     def invoice_number(text):
 
@@ -59,6 +61,9 @@ class InvoiceParser:
 
         return InvoiceParser._find(patterns, text)
 
+    # =========================
+    # PO NUMBER
+    # =========================
     @staticmethod
     def po_number(text):
 
@@ -69,6 +74,9 @@ class InvoiceParser:
 
         return InvoiceParser._find(patterns, text)
 
+    # =========================
+    # INVOICE DATE
+    # =========================
     @staticmethod
     def invoice_date(text):
 
@@ -82,6 +90,9 @@ class InvoiceParser:
 
         return InvoiceParser._parse_date(value)
 
+    # =========================
+    # DUE DATE
+    # =========================
     @staticmethod
     def due_date(text):
 
@@ -94,6 +105,9 @@ class InvoiceParser:
 
         return InvoiceParser._parse_date(value)
 
+    # =========================
+    # TAX
+    # =========================
     @staticmethod
     def tax(text):
 
@@ -110,6 +124,9 @@ class InvoiceParser:
 
         return None
 
+    # =========================
+    # TOTAL AMOUNT
+    # =========================
     @staticmethod
     def total_amount(text):
 
@@ -127,54 +144,76 @@ class InvoiceParser:
 
         return None
 
+    # =========================
+    # CURRENCY
+    # =========================
     @staticmethod
     def currency(text):
 
-        for currency in [
-            "INR",
-            "USD",
-            "AUD",
-            "EUR",
-            "GBP",
-        ]:
-
-            if re.search(
-                rf"\b{currency}\b",
-                text,
-                re.IGNORECASE,
-            ):
+        for currency in ["INR", "USD", "AUD", "EUR", "GBP"]:
+            if re.search(rf"\b{currency}\b", text, re.IGNORECASE):
                 return currency
 
         if "₹" in text:
             return "INR"
-
         if "$" in text:
             return "USD"
-
         if "£" in text:
             return "GBP"
-
         if "€" in text:
             return "EUR"
 
         return None
 
+    # =========================
+    # LINE ITEMS (🔥 FIXED)
+    # =========================
+    @staticmethod
+    def line_items(text: str):
+
+        pattern = r"""
+            \d+\.\s*(?P<description>.*?)\n
+            Quantity:\s*(?P<quantity>[\d,.]+)\n
+            Unit\s*Price:\s*[₹$£€]?\s*(?P<unit_price>[\d,]+\.\d+)\n
+            Amount:\s*[₹$£€]?\s*(?P<amount>[\d,]+\.\d+)
+        """
+
+        matches = re.finditer(
+            pattern,
+            text,
+            re.IGNORECASE | re.VERBOSE | re.DOTALL,
+        )
+
+        items = []
+
+        for m in matches:
+            items.append({
+                "description": m.group("description").strip(),
+                "quantity": float(m.group("quantity").replace(",", "")),
+                "unit_price": float(m.group("unit_price").replace(",", "")),
+                "amount": float(m.group("amount").replace(",", "")),
+            })
+
+        return items
+
+    # =========================
+    # GENERIC FINDER
+    # =========================
     @staticmethod
     def _find(patterns, text):
 
         for pattern in patterns:
 
-            match = re.search(
-                pattern,
-                text,
-                re.IGNORECASE,
-            )
+            match = re.search(pattern, text, re.IGNORECASE)
 
             if match:
                 return match.group(1).strip()
 
         return None
 
+    # =========================
+    # DATE PARSER
+    # =========================
     @staticmethod
     def _parse_date(value):
 
@@ -190,13 +229,8 @@ class InvoiceParser:
         ]
 
         for fmt in formats:
-
             try:
-                return datetime.strptime(
-                    value,
-                    fmt,
-                ).date()
-
+                return datetime.strptime(value, fmt).date()
             except ValueError:
                 pass
 
