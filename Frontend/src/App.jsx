@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "./pages/Login";
@@ -10,6 +11,7 @@ import FinanceInbox from "./pages/FinanceInbox";
 import NotFound from "./pages/NotFound";
 import Gmail from "./pages/Gmail";
 import Register from "./pages/Register";
+import Settings from "./pages/Settings";
 
 // Real auth check — verify token exists in localStorage
 function isAuthenticated() {
@@ -40,6 +42,15 @@ function RoleRoute({ children, allowedRoles }) {
 }
 
 function App() {
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme") || "light";
+    if (savedTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
+
   return (
     <BrowserRouter>
       <Routes>
@@ -54,6 +65,16 @@ function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Settings — all roles */}
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
             </ProtectedRoute>
           }
         />

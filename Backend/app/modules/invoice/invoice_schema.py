@@ -24,6 +24,33 @@ class LineItem(BaseModel):
 
 
 # --------------------------------------------------
+# Create Invoice Request (BA Team Upload)
+# --------------------------------------------------
+
+class InvoiceCreateRequest(BaseModel):
+
+    vendor: str | None = Field(default=None, max_length=255)
+
+    invoice_number: str | None = Field(default=None, max_length=100)
+
+    po_number: str | None = Field(default=None, max_length=100)
+
+    invoice_date: date | None = None
+
+    due_date: date | None = None
+
+    tax: float | None = None
+
+    total_amount: float | None = None
+
+    currency: str | None = Field(default="$", max_length=10)
+
+    line_items: list[LineItem] = Field(default_factory=list)
+
+    attachment_name: str | None = None
+
+
+# --------------------------------------------------
 # Update Invoice Request (BA Team)
 # --------------------------------------------------
 

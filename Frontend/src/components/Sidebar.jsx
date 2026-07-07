@@ -147,33 +147,7 @@ export default function Sidebar() {
 
       </div>
 
-      {/* Storage Card */}
 
-      <div className="mx-5 mb-6 bg-slate-800 rounded-2xl p-5">
-
-        <div className="flex justify-between">
-
-          <span className="text-slate-300">
-            Storage
-          </span>
-
-          <span className="text-blue-400">
-            75%
-          </span>
-
-        </div>
-
-        <div className="w-full bg-slate-700 rounded-full h-2 mt-3">
-
-          <div className="bg-blue-500 h-2 rounded-full w-3/4"></div>
-
-        </div>
-
-        <p className="text-xs text-slate-400 mt-3">
-          7.5 GB of 10 GB used
-        </p>
-
-      </div>
 
       {/* User */}
 
@@ -211,7 +185,10 @@ export default function Sidebar() {
 
       <div className="px-6 pb-5">
 
-        <button className="w-full flex items-center justify-center gap-3 bg-slate-800 hover:bg-slate-700 py-3 rounded-xl transition">
+        <button
+          onClick={() => navigate("/settings")}
+          className="w-full flex items-center justify-center gap-3 bg-slate-800 hover:bg-slate-700 py-3 rounded-xl transition cursor-pointer"
+        >
 
           <FiSettings />
 

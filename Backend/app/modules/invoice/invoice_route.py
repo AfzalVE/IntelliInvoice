@@ -18,6 +18,7 @@ from app.core.database import get_db
 from app.modules.auth.dependencies import get_current_user, require_role
 from app.modules.user.user_model import User
 from app.modules.invoice.invoice_schema import (
+    InvoiceCreateRequest,
     InvoiceUpdateRequest,
     InvoiceSubmitRequest,
     ApprovalCommentRequest,
@@ -41,13 +42,17 @@ router = APIRouter(
 
 @router.get("/", response_model=InvoiceListResponse)
 def get_all_invoices(
+    view: str | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     role = current_user.role.upper()
 
+    # If view == "all" (e.g., Dashboard stats), return all invoices across roles
+    if view == "all":
+        invoices = InvoiceService.get_all_invoices(db)
     # BA sees everything they can work on (Draft + Submitted + Rejected)
-    if role == "BA":
+    elif role == "BA":
         invoices = InvoiceService.get_all_invoices(db)
     # Admin sees only Submitted (pending their approval)
     elif role == "ADMIN":
@@ -76,6 +81,33 @@ def get_invoice(
     current_user: User = Depends(get_current_user),
 ):
     invoice = InvoiceService.get_invoice(db, invoice_id)
+    return {"success": True, "invoice": invoice}
+
+
+# ---------------------------------------------------------------------------
+# POST /invoice — BA only (manual creation / upload)
+# ---------------------------------------------------------------------------
+
+@router.post("/", response_model=InvoiceDetailResponse)
+def create_invoice(
+    request: InvoiceCreateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("BA")),
+):
+    from datetime import datetime
+    invoice = InvoiceService.create_invoice(
+        db,
+        vendor=request.vendor or "New Vendor",
+        invoice_number=request.invoice_number or f"INV-{int(datetime.utcnow().timestamp())}",
+        po_number=request.po_number,
+        invoice_date=request.invoice_date,
+        due_date=request.due_date,
+        tax=request.tax or 0.0,
+        total_amount=request.total_amount or 0.0,
+        currency=request.currency or "$",
+        line_items=[item.model_dump() for item in request.line_items] if request.line_items else [],
+        attachment_name=request.attachment_name or "uploaded_invoice.pdf",
+    )
     return {"success": True, "invoice": invoice}
 
 

@@ -271,29 +271,7 @@ def generate_invoice_pdf(invoice, signature_path: str | None = None) -> str:
 
     elements.append(totals_table)
 
-    # ------------------------------------------------------------------
-    # BA Approval Stamp
-    # ------------------------------------------------------------------
 
-    elements.append(Spacer(1, 10 * mm))
-
-    stamp_data = [[
-        Paragraph(
-            "✅  BA APPROVED",
-            styles["ApprovalStamp"],
-        ),
-    ]]
-
-    stamp_table = Table(stamp_data, colWidths=[170 * mm])
-    stamp_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), GREEN_BG),
-        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-        ("TOPPADDING", (0, 0), (-1, -1), 10),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
-        ("ROUNDEDCORNERS", [4, 4, 4, 4]),
-    ]))
-
-    elements.append(stamp_table)
 
     # ------------------------------------------------------------------
     # BA Comments (if any custom text)
