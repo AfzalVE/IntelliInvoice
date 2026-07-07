@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import axios from "axios";
 
-const API = "http://localhost:8000";
+import { API } from "../services/api";
 
 export default function InvoiceList({
   loading,
