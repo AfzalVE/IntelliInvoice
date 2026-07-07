@@ -7,7 +7,7 @@ import Navbar from "../components/Navbar";
 import InvoiceList from "../components/InvoiceList";
 import EditInvoice from "../components/EditInvoiceModal";
 
-const API = "http://localhost:8000";
+import { API } from "../services/api";
 
 export default function ReviewInvoice() {
   const [loading, setLoading] = useState(true);

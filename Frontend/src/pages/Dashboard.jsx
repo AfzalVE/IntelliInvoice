@@ -11,7 +11,8 @@ import {
   FiActivity,
 } from "react-icons/fi";
 
-const API = "http://localhost:8000";
+import { API } from "../services/api";
+
 
 export default function Dashboard() {
   const [invoices, setInvoices] = useState([]);

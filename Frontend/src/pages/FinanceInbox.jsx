@@ -4,7 +4,8 @@ import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { FiSearch, FiDownload, FiMessageSquare } from "react-icons/fi";
 
-const API = "http://localhost:8000";
+import { API } from "../services/api";
+
 
 export default function FinanceInbox() {
   const [loading, setLoading] = useState(true);

@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
+import { API } from "../services/api";
 
-const API = "http://localhost:8000";
 
 export default function Approved() {
   const [loading, setLoading] = useState(true);

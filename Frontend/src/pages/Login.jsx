@@ -4,7 +4,7 @@ import { Mail, Lock } from "lucide-react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 
-const API = "http://localhost:8000";
+import { API } from "../services/api";
 
 // Role-to-landing-page map
 const ROLE_HOME = {

@@ -8,8 +8,9 @@ import {
   FiRefreshCw,
   FiXCircle,
 } from "react-icons/fi";
+import { API } from "../services/api";
 
-const API_BASE_URL = "http://localhost:8000";
+const API_BASE_URL = API;
 
 export default function Gmail() {
   const token = localStorage.getItem("accessToken");

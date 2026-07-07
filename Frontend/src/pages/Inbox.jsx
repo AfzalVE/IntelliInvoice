@@ -16,7 +16,8 @@ import {
   FiInbox,
 } from "react-icons/fi";
 
-const API = "http://localhost:8000";
+import { API } from "../services/api";
+
 
 export default function Inbox() {
   const navigate = useNavigate();
